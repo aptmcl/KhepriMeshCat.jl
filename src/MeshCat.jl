@@ -813,16 +813,13 @@ MeshCat.setcontrol!(
 }
 =#
 
-set_view(camera::Loc, target::Loc, lens::Real, aperture::Real, b::MCAT) =
+KhepriBase.b_set_view(b::MCAT, camera, target, lens, aperture) =
   let v = connection(b)
     send_setview(v, camera, target, lens, aperture)
     b.camera = camera
     b.target = target
     b.lens = lens
   end
-
-get_view(b::MCAT) =
-  b.camera, b.target, b.lens
 
 KhepriBase.b_delete_ref(b::MCAT, r::MCATId) =
   send_delobject(connection(b), r)
