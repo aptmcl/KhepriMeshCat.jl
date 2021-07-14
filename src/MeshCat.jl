@@ -650,7 +650,7 @@ Base.show(
   v::MCATViewer) = display_meshcat(io, v.visualizer)
 
 export display_view
-display_view(b::MCAT=current_backend()) = error("Needs specialization")
+display_view(b=current_backend()) = error("Needs specialization")
 display_view(b::MCAT) = MCATViewer(connection(b))
 
 const meshcat_root_path = "/Khepri"
