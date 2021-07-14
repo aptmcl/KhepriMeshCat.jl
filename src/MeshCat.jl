@@ -789,8 +789,8 @@ KhepriBase.b_torus(b::MCAT, c, ra, rb, mat) =
   add_object(b, meshcat_torus(c, ra, rb, mat))
 
 KhepriBase.b_extrusion(b::MCAT, profile::Region, v, cb, bmat, tmat, smat) =
-  let cs = cs_from_o_vz(cb, v)#,
-    add_object(b, meshcat_extrusion_z(in_cs(profile, cs), norm(v), tmat, u0(cs)))
+  let cs = cs_from_o_vz(cb, v)
+    add_object(b, meshcat_extrusion_z(profile, norm(v), tmat, u0(cs)))
   end
 #=
 setprop!(
