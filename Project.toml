@@ -16,11 +16,11 @@ UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 [compat]
 ColorTypes = "0.11"
 Colors = "0.12"
-KhepriBase = "0.2, 0.3"
+KhepriBase = "0.3"
 MeshCat = "0.13"
 MsgPack = "1"
 Reexport = "1"
-julia = "1.5"
+julia = "1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
