@@ -579,9 +579,7 @@ mutable struct MCATBackend{K,T} <: RemoteBackend{K,T}
   connection::Union{Missing,Visualizer}
   count::Int64
   layer::MCATLayer
-  camera::Loc
-  target::Loc
-  lens::Real
+  view::View
   sun_altitude::Real
   sun_azimuth::Real
 end
@@ -616,9 +614,7 @@ KhepriBase.start_connection(b::MCAT) =
 meshcat = MCAT(missing,
                0,
                mcat_layer("default", RGB(1,1,1)),
-               xyz(10,10,10),
-               xyz(0,0,0),
-               35,
+               default_view(),
                90,
                0)
 
