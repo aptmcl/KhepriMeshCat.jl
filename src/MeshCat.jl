@@ -679,41 +679,7 @@ new_backend(b::MCAT) =
 =#
 KhepriBase.b_line(b::MCAT, ps, mat) =
   add_object(b, meshcat_line(ps, mat))
-#=
-KhepriBase.b_nurbs_curve(b::MCAT, order, ps, knots, weights, closed, mat) =
-  b_line(b, ps, closed, mat)
 
-KhepriBase.b_spline(b::MCAT, ps, v1, v2, interpolator, mat) =
-  let ci = curve_interpolator(ps, false),
-      cpts = curve_control_points(ci),
-      n = length(cpts),
-      knots = curve_knots(ci)
-    b_nurbs_curve(b, 5, cpts, knots, fill(1.0, n), false, mat)
-  end
-
-KhepriBase.b_closed_spline(b::MCAT, ps, mat) =
-  let ci = curve_interpolator(ps, true),
-      cpts = curve_control_points(ci),
-      n = length(cpts),
-      knots = curve_knots(ci)
-    b_nurbs_curve(b, 5, cpts, knots, fill(1.0, n), true, mat)
-  end
-
-KhepriBase.b_circle(b::MCAT, c, r, mat) =
-  b_closed_spline(b, regular_polygon_vertices(32, c, r, 0, true), mat)
-
-KhepriBase.b_arc(b::MCAT, c, r, α, Δα, mat) =
-  b_spline(b,
-    [center + vpol(r, a, center.cs)
-     for a in division(α, α + Δα, Δα*32/2/π, false)],
-    nothing, nothing, # THIS NEEDS TO BE FIXED
-    mat)
-
-KhepriBase.b_rectangle(b::MCAT, c, dx, dy, mat) =
-  b_polygon(b, [c, add_x(c, dx), add_xy(c, dx, dy), add_y(c, dy)], mat)
-
-# First tier: everything is a triangle or a set of triangles
-=#
 KhepriBase.b_trig(b::MCAT, p1, p2, p3, mat) =
   let ps = [p1, p2, p3]
     add_object(b, meshcat_mesh(ps, [(0,1,2)], mat))
