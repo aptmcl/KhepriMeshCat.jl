@@ -47,6 +47,10 @@ send_setproperty(vis, path, property, value) =
 send_setvisible(vis, path, value) =
   send_meshcat(vis, (type="set_property", path=path, property="visible", value=value))
 
+send_setcolor(vis, path, c) =
+  send_meshcat(vis, (type="set_property", path=path*"/<object>", property="color", 
+                     value=Float32.([red(c), green(c), blue(c), alpha(c)])))
+
 #send_setproperty(connection(meshcat), "/Background/hide_background", "value", true)
 #send_meshcat(connection(meshcat), (type="hide_background",))
 
@@ -580,6 +584,7 @@ mutable struct MCATBackend{K,T} <: RemoteBackend{K,T}
   count::Int64
   layer::MCATLayer
   view::View
+  highlighted::Dict
   sun_altitude::Real
   sun_azimuth::Real
 end
@@ -615,6 +620,7 @@ meshcat = MCAT(missing,
                0,
                mcat_layer("default", RGB(1,1,1)),
                default_view(),
+               Dict(),
                90,
                0)
 
@@ -754,6 +760,46 @@ KhepriBase.b_extrusion(b::MCAT, profile::Region, v, cb, bmat, tmat, smat) =
   let cs = cs_from_o_vz(cb, v)
     add_object(b, meshcat_extrusion_z(profile, norm(v), tmat, u0(cs)))
   end
+
+
+#
+KhepriBase.b_highlight_shapes(b::MCAT, ss::Shapes) =
+  for s in ss
+    if s ∉ keys(b.highlighted)
+      b.highlighted[s] = ref(b, s.material).value.color
+      send_setcolor(connection(b), ref(b, s).value, rgb(1,1,0))
+    end
+  end
+
+KhepriBase.b_unhighlight_shapes(b::MCAT, ss::Shapes) =
+  for s in ss
+    if s ∈ keys(b.highlighted)
+      send_setcolor(connection(b), ref(b, s).value, parse(Colorant, b.highlighted[s]))
+      delete!(b.highlighted, s)
+    end
+  end
+
+KhepriBase.b_unhighlight_all_shapes(b::MCAT) = begin
+  for (s, c) ∈ b.highlighted
+    send_setcolor(connection(b), ref(b, s).value, parse(Colorant, c))
+  end
+  empty!(b.highlighted)
+end
+
+#
+KhepriBase.b_select_shape(b::MCAT, prompt::String) =
+  let get_it() = select_one_with_prompt(prompt, b, )
+    @remote(b, deselect_all_shapes())
+    let sh = get_it()
+      while isnothing(sh)
+        sleep(1)
+        sh = get_it()
+      end
+      sh
+    end
+  end
+
+
 #=
 setprop!(
   connection(meshcat)["/Cameras/default/rotated/<object>"], #"Cameras","default","rotated","<object>"],
