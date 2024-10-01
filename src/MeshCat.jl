@@ -273,7 +273,7 @@ convert(::Type{MeshcatShape}, p::Path) =
 meshcat_surface_2d(path, material, p=u0(world_cs)) =
   let shape = meshcat_shape(path),
       geom = (uuid=string(uuid1()),
-              type="ShapeBufferGeometry",
+              type="ShapeGeometry",
               shapes=[shape.uuid],
               curveSegments=64)
     meshcat_object_shapes("Mesh", geom, [shape], material, p)
@@ -345,8 +345,8 @@ dump(meshcat_surface_2d(
 
 meshcat_surface_polygon(vertices, material) =
   let n = length(vertices)
-    n <= 0 ?
-      meshcat_mesh(vertices, n < 4 ? [(0,1,2)] : [(0,1,2),(2,3,0)], material) :
+    n <= 4 ?
+      meshcat_mesh_index(vertices, n < 4 ? [(0,1,2)] : [(0,1,2),(2,3,0)], material) :
       let ps = in_world.(vertices),
           n = vertices_normal(ps),
           cs = cs_from_o_vz(ps[1], n),
@@ -363,7 +363,7 @@ add_object(meshcat, meshcat_surface_polygon([x(1), x(3), xz(3,4), xz(1,4)], mate
 
 meshcat_circle_mesh(center, radius, start_angle, amplitude, material) =
   let geom = (uuid=string(uuid1()),
-              type="CircleBufferGeometry",
+              type="CircleGeometry",
               radius=radius,
               segments=64,
               thetaStart=start_angle,
@@ -374,7 +374,7 @@ meshcat_circle_mesh(center, radius, start_angle, amplitude, material) =
 
 meshcat_centered_box(p, dx, dy, dz, material) =
   let geom = (uuid=string(uuid1()),
-              type="BoxBufferGeometry",
+              type="BoxGeometry",
               width=dx,
               depth=dy,
               height=dz)
@@ -393,7 +393,7 @@ send_delobject(v, "/meshcat/box2")
 
 meshcat_sphere(p, r, material) =
   let geom = (uuid=string(uuid1()),
-              type="SphereBufferGeometry",
+              type="SphereGeometry",
               radius=r,
               widthSegments=64,
               heightSegments=64)
@@ -402,7 +402,7 @@ meshcat_sphere(p, r, material) =
 
 meshcat_torus(p, re, ri, material) =
   let geom = (uuid=string(uuid1()),
-              type="TorusBufferGeometry",
+              type="TorusGeometry",
               radius=re,
               tube=ri,
               radialSegments=64,
@@ -412,7 +412,7 @@ meshcat_torus(p, re, ri, material) =
 
 meshcat_centered_cone(p, r, h, material) =
   let geom = (uuid=string(uuid1()),
-              type="ConeBufferGeometry",
+              type="ConeGeometry",
               radius=r,
               height=h,
               radialSegments=64)
@@ -424,7 +424,7 @@ meshcat_cone(p, r, h, material) =
 
 meshcat_centered_cone_frustum(p, rb, rt, h, material) =
   let geom = (uuid=string(uuid1()),
-              type="CylinderBufferGeometry",
+              type="CylinderGeometry",
               radiusTop=rt,
               radiusBottom=rb,
               height=h,
@@ -441,7 +441,7 @@ meshcat_cylinder(p, r, h, material) =
 meshcat_extrusion_z(profile, h, material, p=u0(world_cs)) =
   let shape = meshcat_shape(profile),
       geom = (uuid=string(uuid1()),
-              type="ExtrudeBufferGeometry",
+              type="ExtrudeGeometry",
               shapes=[shape.uuid],
               options=(
                 #steps=2,
@@ -506,7 +506,25 @@ dump(meshcat_extrusion(open_polygonal_path([x(0), z(10)]),
 send_setobject(v, "/meshcat/sphere1", meshcat_sphere(xyz(-2,-3,0), 1))
 send_setobject(v, "/meshcat/cylinder1", meshcat_cylinder(loc_from_o_vx_vy(x(-3), vxy(1,1), vxz(-1,1)), 1, 5))
 =#
-meshcat_mesh(vertices, faces, material) =
+#=
+Expects a flatten array of sequences of three vertices.
+=# 
+meshcat_mesh(vertices, material) =
+  let geom = (uuid=string(uuid1()),
+              type="BufferGeometry",
+              data=(
+                attributes=(
+                  position=meshcat_buffer_geometry_attributes_position(vertices),
+                  #uv=?
+                  ),))
+    meshcat_object("Mesh", geom, material, u0(world_cs))
+  end
+
+#=
+Expects a flatten array of vertices and an array of tuples of indexes over the first array.
+=# 
+
+meshcat_mesh_index(vertices, indexes, material) =
   let geom = (uuid=string(uuid1()),
               type="BufferGeometry",
               data=(
@@ -517,7 +535,7 @@ meshcat_mesh(vertices, faces, material) =
                 index=(
                   itemSize=3,
                   type="Uint32Array",
-                  array=convert(Vector{UInt32}, collect(Iterators.flatten(faces))))))
+                  array=convert(Vector{UInt32}, collect(Iterators.flatten(indexes))))))
     meshcat_object("Mesh", geom, material, u0(world_cs))
   end
 #=
@@ -567,8 +585,6 @@ abstract type MCATKey end
 const MCATId = Union{String, NamedTuple} #Materials are tuples
 const MCATRef = GenericRef{MCATKey, MCATId}
 const MCATNativeRef = NativeRef{MCATKey, MCATId}
-const MCATUnionRef = UnionRef{MCATKey, MCATId}
-const MCATSubtractionRef = SubtractionRef{MCATKey, MCATId}
 
 struct MCATLayer
   name
@@ -688,24 +704,56 @@ KhepriBase.b_line(b::MCAT, ps, mat) =
 
 KhepriBase.b_trig(b::MCAT, p1, p2, p3, mat) =
   let ps = [p1, p2, p3]
-    add_object(b, meshcat_mesh(ps, [(0,1,2)], mat))
+    add_object(b, meshcat_mesh_index(ps, [(0,1,2)], mat))
   end
 KhepriBase.b_quad(b::MCAT, p1, p2, p3, p4, mat) =
   let ps = [p1, p2, p3, p4]
-    add_object(b, meshcat_mesh(ps, [(0,1,2),(2,3,0)], mat))
+    add_object(b, meshcat_mesh_index(ps, [(0,1,2),(2,3,0)], mat))
   end
 
-#=
-
 KhepriBase.b_ngon(b::MCAT, ps, pivot, smooth, mat) =
-  [(b_trig(b, pivot, ps[i], ps[i+1], mat)
-    for i in 1:size(ps,1)-1)...,
-	 b_trig(b, pivot, ps[end], ps[1], mat)]
+  if smooth # Threejs merges normals if indexed with repeated vertices
+    let pts = [pivot, ps...],
+        idxs = Tuple{Int, Int, Int}[],
+        trig(a,b,c) = push!(idxs, (a, b, c))
+      for i in 1:size(ps,1)-1
+        trig(0, i, i+1)
+      end
+	    trig(0, length(ps), 1)
+      add_object(b, meshcat_mesh_index(pts, idxs, mat))
+    end
+  else
+    let pts = Loc[]
+      trig(a,b,c) = push!(pts, a, b, c)
+      for i in 1:size(ps,1)-1
+        trig(pivot, ps[i], ps[i+1])
+      end
+      trig(pivot, ps[end], ps[1])
+      add_object(b, meshcat_mesh(pts, mat))
+    end
+  end
 
 KhepriBase.b_quad_strip(b::MCAT, ps, qs, smooth, mat) =
-  [b_quad(b, ps[i], ps[i+1], qs[i+1], qs[i], mat)
-   for i in 1:size(ps,1)-1]
+  if smooth # Threejs merges normals if indexed with repeated vertices
+    let nps = length(ps),
+        idxs = Tuple{Int, Int, Int}[],
+        quad(a,b,c,d) = (push!(idxs, (a, b, d)); push!(idxs, (d, b, c)))
+      for i in 0:nps-2
+        quad(i, i+1, nps + i+1, nps + i)
+      end
+      add_object(b, meshcat_mesh_index(vcat(ps, qs), idxs, mat))
+    end
+  else
+    let pts = Loc[]
+      quad(a,b,c,d) = push!(pts, a, b, d, d, b, c)
+      for i in 1:size(ps,1)-1
+        quad(ps[i], ps[i+1], qs[i+1], qs[i])
+      end
+      add_object(b, meshcat_mesh(pts, mat))
+    end
+  end
 
+  #=
 KhepriBase.b_quad_strip_closed(b::MCAT, ps, qs, smooth, mat) =
   b_quad_strip(b, [ps..., ps[1]], [qs..., qs[1]], smooth, mat)
 
@@ -720,10 +768,10 @@ KhepriBase.b_surface_grid(b::MCAT, ptss, closed_u, closed_v, smooth_u, smooth_v,
   let si = size(ptss, 1),
       sj = size(ptss, 2),
       idxs = meshcat_faces(si, sj, closed_u, closed_v)
-    add_object(b, meshcat_mesh(reshape(permutedims(ptss),:), idxs, mat))
+    add_object(b, meshcat_mesh_index(reshape(permutedims(ptss),:), idxs, mat))
   end
 KhepriBase.b_surface_mesh(b::MCAT, vertices, faces, mat) =
-  add_object(b, meshcat_mesh(vertices, faces, mat))
+  add_object(b, meshcat_mesh_index(vertices, faces, mat))
 #=
 
 # Parametric surface
@@ -756,13 +804,13 @@ KhepriBase.b_cone_frustum(b::MCAT, cb, rb, h, rt, mat) =
 KhepriBase.b_torus(b::MCAT, c, ra, rb, mat) =
   add_object(b, meshcat_torus(c, ra, rb, mat))
 
-KhepriBase.b_extrusion(b::MCAT, profile::Region, v, cb, bmat, tmat, smat) =
+KhepriBase.b_extruded_surface(b::MCAT, profile::Region, v, cb, bmat, tmat, smat) =
   let cs = cs_from_o_vz(cb, v)
     add_object(b, meshcat_extrusion_z(profile, norm(v), tmat, u0(cs)))
   end
 
 
-#
+#=
 KhepriBase.b_highlight_shapes(b::MCAT, ss::Shapes) =
   for s in ss
     if s ∉ keys(b.highlighted)
@@ -799,7 +847,7 @@ KhepriBase.b_select_shape(b::MCAT, prompt::String) =
     end
   end
 
-
+=#
 #=
 setprop!(
   connection(meshcat)["/Cameras/default/rotated/<object>"], #"Cameras","default","rotated","<object>"],
@@ -823,10 +871,12 @@ MeshCat.setcontrol!(
 KhepriBase.b_set_view(b::MCAT, camera, target, lens, aperture) =
   let v = connection(b)
     send_setview(v, camera, target, lens, aperture)
-    b.camera = camera
-    b.target = target
-    b.lens = lens
+    b.view.camera = camera
+    b.view.target = target
+    b.view.lens = lens
   end
+
+KhepriBase.b_zoom_extents(b::MCAT) = @warn("Unimplemented (yet!)")
 
 KhepriBase.b_delete_ref(b::MCAT, r::MCATId) =
   send_delobject(connection(b), r)
