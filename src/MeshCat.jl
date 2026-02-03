@@ -603,6 +603,7 @@ mutable struct MCATBackend{K,T} <: RemoteBackend{K,T}
   highlighted::Dict
   sun_altitude::Real
   sun_azimuth::Real
+  refs::References{K,T}
 end
 
 const MCAT = MCATBackend{MCATKey, MCATId}
@@ -638,7 +639,8 @@ meshcat = MCAT(missing,
                default_view(),
                Dict(),
                90,
-               0)
+               0,
+               References{MCATKey, MCATId}())
 
 KhepriBase.backend_name(b::MCAT) = "MeshCat"
 #=
@@ -814,22 +816,22 @@ KhepriBase.b_extruded_surface(b::MCAT, profile::Region, v, cb, bmat, tmat, smat)
 KhepriBase.b_highlight_shapes(b::MCAT, ss::Shapes) =
   for s in ss
     if s ∉ keys(b.highlighted)
-      b.highlighted[s] = ref(b, s.material).value.color
-      send_setcolor(connection(b), ref(b, s).value, rgb(1,1,0))
+      b.highlighted[s] = ref_value(b, s.material).color
+      send_setcolor(connection(b), ref_value(b, s), rgb(1,1,0))
     end
   end
 
 KhepriBase.b_unhighlight_shapes(b::MCAT, ss::Shapes) =
   for s in ss
     if s ∈ keys(b.highlighted)
-      send_setcolor(connection(b), ref(b, s).value, parse(Colorant, b.highlighted[s]))
+      send_setcolor(connection(b), ref_value(b, s), parse(Colorant, b.highlighted[s]))
       delete!(b.highlighted, s)
     end
   end
 
 KhepriBase.b_unhighlight_all_shapes(b::MCAT) = begin
   for (s, c) ∈ b.highlighted
-    send_setcolor(connection(b), ref(b, s).value, parse(Colorant, c))
+    send_setcolor(connection(b), ref_value(b, s), parse(Colorant, c))
   end
   empty!(b.highlighted)
 end
@@ -881,7 +883,7 @@ KhepriBase.b_zoom_extents(b::MCAT) = @warn("Unimplemented (yet!)")
 KhepriBase.b_delete_ref(b::MCAT, r::MCATId) =
   send_delobject(connection(b), r)
 
-KhepriBase.b_delete_all_refs(b::MCAT) =
+KhepriBase.b_delete_all_shape_refs(b::MCAT) =
   send_delobject(connection(b), meshcat_root_path)
 #=
 
