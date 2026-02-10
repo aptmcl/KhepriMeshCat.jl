@@ -613,16 +613,16 @@ line_material(b::MCAT) = b.layer.line_material
 
 KhepriBase.after_connecting(b::MCAT) =
   begin
-    set_material(b, material_point, meshcat_material(RGB(0.1,0.1,0.9)))
-    set_material(b, material_curve, meshcat_material(RGB(0.9,0.1,0.1)))
-    set_material(b, material_surface, meshcat_material(RGB(0.1,0.9,0.1)))
-    set_material(b, material_basic, meshcat_material(RGB(0.8,0.8,0.8)))
-    set_material(b, material_glass, meshcat_glass_material())
-	  set_material(b, material_metal, meshcat_metal_material())
-	  set_material(b, material_wood, meshcat_material(RGB(0.5,0.5,0.5)))
-	  set_material(b, material_concrete, meshcat_material(RGB(0.2,0.2,0.2)))
-	  set_material(b, material_plaster, meshcat_material(RGB(0.7,0.7,0.7)))
-	  set_material(b, material_grass, meshcat_material(RGB(0.1,0.7,0.1)))
+    set_material(MCAT, material_point, meshcat_material(RGB(0.1,0.1,0.9)))
+    set_material(MCAT, material_curve, meshcat_material(RGB(0.9,0.1,0.1)))
+    set_material(MCAT, material_surface, meshcat_material(RGB(0.1,0.9,0.1)))
+    set_material(MCAT, material_basic, meshcat_material(RGB(0.8,0.8,0.8)))
+    set_material(MCAT, material_glass, meshcat_glass_material())
+    set_material(MCAT, material_metal, meshcat_metal_material())
+    set_material(MCAT, material_wood, meshcat_material(RGB(0.5,0.5,0.5)))
+    set_material(MCAT, material_concrete, meshcat_material(RGB(0.2,0.2,0.2)))
+    set_material(MCAT, material_plaster, meshcat_material(RGB(0.7,0.7,0.7)))
+    set_material(MCAT, material_grass, meshcat_material(RGB(0.1,0.7,0.1)))
   end
 
 KhepriBase.start_connection(b::MCAT) =
@@ -641,6 +641,8 @@ meshcat = MCAT(missing,
                90,
                0,
                References{MCATKey, MCATId}())
+
+KhepriBase.void_ref(b::MCAT) = ""
 
 KhepriBase.backend_name(b::MCAT) = "MeshCat"
 #=
@@ -685,7 +687,14 @@ add_object(b::MCAT, obj) =
   send_setobject(connection(b), next_id(b), obj)
 
 has_boolean_ops(::Type{MCAT}) = HasBooleanOps{false}()
-void_ref(b::MCAT) = MCATNativeRef("")
+void_ref(b::MCAT) = ""
+view_type(::Type{MCAT}) = FrontendView()
+
+# Layer operations (no-op — MeshCat does not support layers)
+b_layer(b::MCAT, name, active, color) = BasicLayer(name, active, color)
+b_current_layer_ref(b::MCAT) = nothing
+b_current_layer_ref(b::MCAT, layer) = nothing
+b_delete_all_shapes_in_layer(b::MCAT, layer) = nothing
 
 reset_backend(b::MCAT) =
   begin
