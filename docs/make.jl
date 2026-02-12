@@ -20,4 +20,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/aptmcl/KhepriMeshCat.jl",
+    devbranch="master",
 )
