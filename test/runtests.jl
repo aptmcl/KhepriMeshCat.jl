@@ -108,4 +108,19 @@ using Test
     end
   end
 
+  # Conformance tests
+  @testset "Backend Conformance (MeshCat)" begin
+    include(joinpath(dirname(pathof(KhepriBase)), "..", "test", "BackendConformanceTests.jl"))
+    using .BackendConformanceTests
+
+    run_conformance_tests(meshcat,
+      reset! = () -> begin
+        empty!(meshcat.refs)
+      end,
+      # MeshCat lacks transaction field -- skip tiers that use high-level shape API
+      skip = [:curves, :triangles, :surfaces, :solids, :layers, :materials,
+              :highlevel, :refs, :delete, :advanced]
+    )
+  end
+
 end
