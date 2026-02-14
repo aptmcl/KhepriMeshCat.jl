@@ -117,7 +117,7 @@ using Test
       reset! = () -> begin
         empty!(meshcat.refs)
       end,
-      # MeshCat lacks transaction field -- skip tiers that use high-level shape API
+      # MeshCat b_* operations require a live connection -- skip operation tiers
       skip = [:curves, :triangles, :surfaces, :solids, :layers, :materials,
               :highlevel, :refs, :delete, :advanced]
     )

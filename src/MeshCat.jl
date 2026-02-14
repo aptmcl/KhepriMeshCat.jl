@@ -603,6 +603,7 @@ mutable struct MCATBackend{K,T} <: RemoteBackend{K,T}
   highlighted::Dict
   sun_altitude::Real
   sun_azimuth::Real
+  transaction::Parameter{KhepriBase.Transaction}
   refs::References{K,T}
 end
 
@@ -640,6 +641,7 @@ meshcat = MCAT(missing,
                Dict(),
                90,
                0,
+               Parameter{KhepriBase.Transaction}(KhepriBase.AutoCommitTransaction()),
                References{MCATKey, MCATId}())
 
 KhepriBase.void_ref(b::MCAT) = ""
