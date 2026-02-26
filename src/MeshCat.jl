@@ -688,15 +688,14 @@ next_id(b::MCATBackend{K,T}) where {K,T} =
 add_object(b::MCAT, obj) =
   send_setobject(connection(b), next_id(b), obj)
 
-has_boolean_ops(::Type{MCAT}) = HasBooleanOps{false}()
-void_ref(b::MCAT) = ""
-view_type(::Type{MCAT}) = FrontendView()
+KhepriBase.has_boolean_ops(::Type{MCAT}) = HasBooleanOps{false}()
+KhepriBase.view_type(::Type{MCAT}) = FrontendView()
 
 # Layer operations (no-op — MeshCat does not support layers)
-b_layer(b::MCAT, name, active, color) = BasicLayer(name, active, color)
-b_current_layer_ref(b::MCAT) = nothing
-b_current_layer_ref(b::MCAT, layer) = nothing
-b_delete_all_shapes_in_layer(b::MCAT, layer) = nothing
+KhepriBase.b_layer(b::MCAT, name, active, color) = BasicLayer(name, active, color)
+KhepriBase.b_current_layer_ref(b::MCAT) = nothing
+KhepriBase.b_current_layer_ref(b::MCAT, layer) = nothing
+KhepriBase.b_delete_all_shapes_in_layer(b::MCAT, layer) = nothing
 
 reset_backend(b::MCAT) =
   begin
