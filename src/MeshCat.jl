@@ -581,11 +581,6 @@ send_setview(v, camera::Loc, target::Loc, lens::Real, aperture::Real) =
 
 #send_setproperty(connection(meshcat), "/Orbit/<object>", "target", [2,0,0])
 ####################################################
-abstract type MCATKey end
-const MCATId = Union{String, NamedTuple} #Materials are tuples
-const MCATRef = GenericRef{MCATKey, MCATId}
-const MCATNativeRef = NativeRef{MCATKey, MCATId}
-
 struct MCATLayer
   name
   material
@@ -595,19 +590,19 @@ end
 mcat_layer(name, color) =
   MCATLayer(name, meshcat_material(color), meshcat_line_material(color))
 
-mutable struct MCATBackend{K,T} <: RemoteBackend{K,T}
-  connection::Union{Missing,Visualizer}
-  count::Int64
-  layer::MCATLayer
-  view::View
-  highlighted::Dict
-  sun_altitude::Real
-  sun_azimuth::Real
-  transaction::Parameter{KhepriBase.Transaction}
-  refs::References{K,T}
+@defbackend MCAT MCAT begin
+  id_type = Union{String, NamedTuple}
+  void_ref = ""
+  view_type = FrontendView()
+  parent = RemoteBackend
+  connection::Union{Missing, Visualizer} = missing
+  count::Int64 = Int64(0)
+  layer::MCATLayer = mcat_layer("default", RGB(1,1,1))
+  view::View = default_view()
+  highlighted::Dict = Dict()
+  sun_altitude::Real = 90
+  sun_azimuth::Real = 0
 end
-
-const MCAT = MCATBackend{MCATKey, MCATId}
 
 material(b::MCAT) = b.layer.material
 line_material(b::MCAT) = b.layer.line_material
@@ -634,19 +629,7 @@ KhepriBase.start_connection(b::MCAT) =
     vis
   end
 
-meshcat = MCAT(missing,
-               0,
-               mcat_layer("default", RGB(1,1,1)),
-               default_view(),
-               Dict(),
-               90,
-               0,
-               Parameter{KhepriBase.Transaction}(KhepriBase.AutoCommitTransaction()),
-               References{MCATKey, MCATId}())
-
-KhepriBase.void_ref(b::MCAT) = ""
-
-KhepriBase.backend_name(b::MCAT) = "MeshCat"
+meshcat = MCAT()
 #=
 To visualize, we piggyback on Julia's display mechanisms
 =#
@@ -679,7 +662,7 @@ display_view(b::MCAT) = MCATViewer(connection(b))
 
 const meshcat_root_path = "/Khepri"
 
-next_id(b::MCATBackend{K,T}) where {K,T} =
+next_id(b::MCAT) =
   begin
       b.count += 1
       string(meshcat_root_path, "/", b.layer.name, "/", b.count - 1)
@@ -689,7 +672,6 @@ add_object(b::MCAT, obj) =
   send_setobject(connection(b), next_id(b), obj)
 
 KhepriBase.has_boolean_ops(::Type{MCAT}) = HasBooleanOps{false}()
-KhepriBase.view_type(::Type{MCAT}) = FrontendView()
 
 # Layer operations (no-op — MeshCat does not support layers)
 KhepriBase.b_layer(b::MCAT, name, active, color) = BasicLayer(name, active, color)
@@ -895,66 +877,3 @@ KhepriBase.b_delete_ref(b::MCAT, r::MCATId) =
 
 KhepriBase.b_delete_all_shape_refs(b::MCAT) =
   send_delobject(connection(b), meshcat_root_path)
-#=
-
-backend_stroke(b::MCAT, path::OpenSplinePath) =
-  if (path.v0 == false) && (path.v1 == false)
-    add_object(b, meshcat_line(path_frames(path), line_material(b)))
-  elseif (path.v0 != false) && (path.v1 != false)
-    @remote(b, InterpSpline(path.vertices, path.v0, path.v1))
-  else
-    @remote(b, InterpSpline(
-                     path.vertices,
-                     path.v0 == false ? path.vertices[2]-path.vertices[1] : path.v0,
-                     path.v1 == false ? path.vertices[end-1]-path.vertices[end] : path.v1))
-  end
-backend_stroke(b::MCAT, path::ClosedSplinePath) =
-    add_object(b, meshcat_line(path_frames(path), line_material(b)))
-backend_fill(b::MCAT, path::ClosedSplinePath) =
-    add_object(b, meshcat_surface_polygon(path_frames(path), material(b)))
-
-#=
-smooth_pts(pts) = in_world.(path_frames(open_spline_path(pts)))
-
-=#
-
-# Layers
-current_layer(b::MCAT) =
-  b.layer
-
-current_layer(layer, b::MCAT) =
-  b.layer = layer
-
-backend_create_layer(b::MCAT, name::String, active::Bool, color::RGB) =
-  begin
-    @assert active
-    mcat_layer(name, color)
-  end
-
-#=
-create_ground_plane(shapes, material=default_MCAT_ground_material()) =
-  if shapes == []
-    error("No shapes selected for analysis. Use add-MCAT-shape!.")
-  else
-    let (p0, p1) = bounding_box(union(shapes)),
-        (center, ratio) = (quad_center(p0, p1, p2, p3),
-                  distance(p0, p4)/distance(p0, p2));
-     ratio == 0 ?
-      error("Couldn"t compute height. Use add-MCAT-shape!.") :
-      let pts = map(p -> intermediate_loc(center, p, ratio*10), [p0, p1, p2, p3]);
-         create_surface_layer(pts, 0, ground_layer(), material)
-        end
-       end
-  end
-        w = max(floor_extra_factor()*distance(p0, p1), floor_extra_width())
-        with(current_layer,floor_layer()) do
-          box(xyz(min(p0.x, p1.x)-w, min(p0.y, p1.y)-w, p0.z-1-floor_distance()),
-              xyz(max(p0.x, p1.x)+w, max(p0.y, p1.y)+w, p0.z-0-floor_distance()))
-        end
-      end
-    end
-
-=#
-
-####################################################
-=#
