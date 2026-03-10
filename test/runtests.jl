@@ -13,7 +13,7 @@ using Test
     end
 
     @testset "backend_name" begin
-      @test KhepriBase.backend_name(meshcat) == "MeshCat"
+      @test KhepriBase.backend_name(meshcat) == "MCAT"
     end
 
     @testset "void_ref" begin
@@ -22,16 +22,16 @@ using Test
     end
 
     @testset "has refs field" begin
-      @test hasfield(typeof(meshcat), :refs)
+      @test hasproperty(meshcat, :refs)
       @test meshcat.refs isa KhepriBase.References
     end
 
     @testset "has view field" begin
-      @test hasfield(typeof(meshcat), :view)
+      @test hasproperty(meshcat, :view)
     end
 
     @testset "has layer field" begin
-      @test hasfield(typeof(meshcat), :layer)
+      @test hasproperty(meshcat, :layer)
     end
   end
 
@@ -53,7 +53,7 @@ using Test
     end
 
     @testset "MCAT is alias for MCATBackend" begin
-      @test KhepriMeshCat.MCAT === KhepriMeshCat.MCATBackend{KhepriMeshCat.MCATKey, KhepriMeshCat.MCATId}
+      @test KhepriMeshCat.MCAT === KhepriMeshCat.MCATBackend
     end
   end
 
