@@ -105,7 +105,7 @@ meshcat_glass_material(opacity=0.5, color=RGB(0.9,0.9,1.0)) =
   )
 meshcat_metal_material(roughness=0.5, color=RGB(1.0,1.0,1.0)) =
   (uuid=string(uuid1()),
-   type="MeshStandardMaterial",
+   type="MeshPbrMaterial",
    metalness=1,
    roughness=roughness,
    side=2,
